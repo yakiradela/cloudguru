@@ -1,64 +1,50 @@
-name: CI/CD Pipeline
+name: Deploy to AWS ECR and Terraform
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the code from the repository
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Set up Terraform
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v2
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        terraform_version: '1.3.5'  # Use the Terraform version you need
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
 
-    # Initialize Terraform (important if using S3/DynamoDB for state)
-    - name: Initialize Terraform
+    - name: Change directory to terraform folder
+      run: cd terraform
+
+    - name: Terraform init
       run: terraform init
 
-    # Change directory to terraform folder (if needed)
-    - name: Change directory to terraform folder (if needed)
-      run: cd terraform  # Change this to your correct subdirectory
-
-    # Run terraform plan to check the changes
-    - name: Run terraform plan
+    - name: Terraform plan
       run: terraform plan
 
-    # Apply terraform changes (only if the plan was successful)
-    - name: Run terraform apply
+    - name: Terraform apply
       run: terraform apply -auto-approve
 
-    # Push the Docker images to ECR
-    - name: Build and Push Docker images to ECR
+    - name: Build Docker images and push to ECR
       run: |
-        # Backend
         docker build -t my-backend ./backend
         docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
-
-        # Frontend
         docker build -t my-frontend ./frontend
         docker tag my-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
 
-    # Optionally, you can deploy to ECS (if necessary)
-    - name: Deploy to ECS (optional)
+    - name: Deploy to ECS
       run: |
-        ecs-cli configure --region us-east-2 --access-key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret-key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --cluster your-cluster-name
-        ecs-cli compose --file docker-compose.yml up
-
-    
+        aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
 
 
 
