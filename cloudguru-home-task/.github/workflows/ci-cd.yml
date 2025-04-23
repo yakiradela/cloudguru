@@ -21,34 +21,41 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
 
-    - name: Change directory to terraform folder
-      run: cd terraform
+    - name: List directory structure (debug)
+      run: ls -R
 
-    - name: Terraform init
+    - name: Terraform Init
+      working-directory: ./terraform
       run: terraform init
 
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: List directory coments
-      run: ls -R
-      working-directory: ./inf
-
-    - name: Terraform apply
+    - name: Terraform Apply
+      working-directory: ./terraform
       run: terraform apply -auto-approve
 
-    - name: Build Docker images and push to ECR
+    - name: Build and Push Docker images to ECR
       run: |
-        docker build -t my-backend ./backend
-        docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
-        docker build -t my-frontend ./frontend
-        docker tag my-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
+        if [ -d "./backend" ]; then
+          docker build -t my-backend ./backend
+          docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
+        else
+          echo "Backend directory not found. Skipping backend image build."
+        fi
+
+        if [ -d "./frontend" ]; then
+          docker build -t my-frontend ./frontend
+          docker tag my-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
+        else
+          echo "Frontend directory not found. Skipping frontend image build."
+        fi
 
     - name: Deploy to ECS
       run: |
-        aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
-
+        aws ecs update-service \
+          --cluster my-cluster \
+          --service my-service \
+          --force-new-deployment
 
 
 
