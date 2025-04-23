@@ -21,12 +21,17 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
 
-    - name: List directory structure (debug)
-      run: ls -R
+    - name: Debug - Show contents of terraform folder
+      run: ls -la
+      working-directory: ./terraform
 
     - name: Terraform Init
       working-directory: ./terraform
       run: terraform init
+
+    - name: Terraform Plan
+      working-directory: ./terraform
+      run: terraform plan
 
     - name: Terraform Apply
       working-directory: ./terraform
@@ -56,6 +61,7 @@ jobs:
           --cluster my-cluster \
           --service my-service \
           --force-new-deployment
+
 
 
 
