@@ -27,8 +27,11 @@ jobs:
     - name: Terraform init
       run: terraform init
 
+    - name: Checkout code
+      uses: actions/checkout@v3
     - name: Terraform plan
       run: terraform plan
+      working-directory: ./terraform
 
     - name: Terraform apply
       run: terraform apply -auto-approve
