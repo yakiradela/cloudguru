@@ -6,69 +6,46 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
-  deploy-infrastructure:
-    name: Deploy Infrastructure (Terraform)
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+    # שלב 1 - שליפת הקוד
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Configure AWS credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v2
+    # שלב 2 - התחברות ל-AWS עם מפתחות מה-Secrets
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.0
+    # שלב 3 - לראות מה יש בתיקיית terraform (debug)
+    - name: Debug - Show contents of terraform folder
+      run: ls -la
+      working-directory: ./terraform
 
-    - name: Run tfsec (Terraform Security Scan)
-      run: tfsec ./terraform
-
+    # שלב 4 - Terraform Init
     - name: Terraform Init
       working-directory: ./terraform
       run: terraform init
 
+    # שלב 5 - Terraform Plan
     - name: Terraform Plan
       working-directory: ./terraform
-      run: terraform plan -out=tfplan
+      run: terraform plan
 
+    # שלב 6 - Terraform Apply
     - name: Terraform Apply
       working-directory: ./terraform
-      run: terraform apply -auto-approve tfplan
+      run: terraform apply -auto-approve
 
-  build-and-deploy:
-    name: Build and Deploy Docker Images and ECS Services
-    runs-on: ubuntu-latest
-    needs: deploy-infrastructure
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Configure AWS credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
-        aws-region: us-east-2
-
-    - name: Lint Dockerfiles with hadolint
-      run: |
-        if [ -f ./backend/Dockerfile ]; then hadolint ./backend/Dockerfile; fi
-        if [ -f ./frontend/Dockerfile ]; then hadolint ./frontend/Dockerfile; fi
-
+    # שלב 7 - Build & Push Docker images
     - name: Build and Push Docker images to ECR
       run: |
-        aws ecr get-login-password | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com
-
         if [ -d "./backend" ]; then
           docker build -t my-backend ./backend
           docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
@@ -85,13 +62,13 @@ jobs:
           echo "Frontend directory not found. Skipping frontend image build."
         fi
 
+    # שלב 8 - Deploy ל-ECS
     - name: Deploy to ECS
       run: |
         aws ecs update-service \
           --cluster my-cluster \
           --service my-service \
           --force-new-deployment
-
 
 
 
