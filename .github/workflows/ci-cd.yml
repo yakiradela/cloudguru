@@ -25,6 +25,7 @@ jobs:
        # 7. Build and Push Docker images to ECR
     - name: Build and Push Docker images to ECR
       run: |
+        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 557690607676.dkr.ecr.us-east-2.amazonaws.com
         if [ -d "./cloudguru-home-task/Docker/backend" ]; then
           docker build -t my-backend ./cloudguru-home-task/Docker/backend
           docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
