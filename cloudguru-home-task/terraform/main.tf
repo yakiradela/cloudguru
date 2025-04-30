@@ -39,55 +39,8 @@ module "secrets" {
 module "iam" {
   source = "./modules/iam"
 }
-resource "aws_ecs_task_definition" "my_service_task" {
-  family                   = "my-service"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
 
-  container_definitions = jsonencode([
-    {
-      name      = "my-service"
-      image     = "557690607676.dkr.ecr.us-east-2.amazonaws.com/backend:latest"
-      essential = true
-      portMappings = [
-        {
-          containerPort = 80
-          hostPort      = 80
-        }
-      ]
-      environment = [
-        {
-          name  = "ENV"
-          value = "production"
-        }
-      ]
-    }
-  ])
-}
 
-resource "aws_ecs_service" "my_service" {
-  name            = "my-service"
-  cluster         = module.ecs.cluster_id
-  launch_type     = "FARGATE"
-  desired_count   = 2
-  task_definition = aws_ecs_task_definition.my_service_task.arn
-
-  network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [module.ecs.service_sg_id]
-    assign_public_ip = false
-  }
-
-  load_balancer {
-    target_group_arn = module.alb.target_group_arn
-    container_name   = "my-service"
-    container_port   = 80
-  }
-
-  depends_on = [module.alb.alb_listener]
-}
 
 
 
