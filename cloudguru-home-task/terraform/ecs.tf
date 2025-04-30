@@ -40,7 +40,7 @@ resource "aws_internet_gateway" "main_igw" {
 
 # ECS Cluster Definition
 resource "aws_ecs_cluster" "app_cluster" {
-  name = "my-app-cluster"
+  name = "my-cluster"
 }
 
 # IAM Role for ECS Task Execution
