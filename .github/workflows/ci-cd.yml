@@ -47,6 +47,12 @@ jobs:
     # 3. Debug - Show contents of terraform folder
     - name: Debug - Show contents of terraform folder
       run: ls -la ./cloudguru-home-task/terraform
+   
+    # שלב חדש: התקנת Terraform
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.7  # או כל גרסה שמתאימה לך 
 
     # 4. Set up Terraform
     - name: Terraform Init
