@@ -14,7 +14,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # 2. Set up AWS credentials
+         # 2. Set up AWS credentials
     - name: Set up AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -22,43 +22,46 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
 
-    # 3. Debug - Show contents of terraform folder
-    - name: Debug - Show contents of terraform folder
-      run: ls -la ./terraform
-
-    # 4. Set up Terraform
-    - name: Terraform Init
-      working-directory: ./terraform
-      run: terraform init
-
-    # 5. Validate Terraform configuration
-    - name: Terraform Plan
-      working-directory: ./terraform
-      run: terraform plan
-
-    # 6. Apply Terraform changes
-    - name: Terraform Apply
-      working-directory: ./terraform
-      run: terraform apply -auto-approve
-
-    # 7. Build and Push Docker images to ECR
+       # 7. Build and Push Docker images to ECR
     - name: Build and Push Docker images to ECR
       run: |
-        if [ -d "./backend" ]; then
-          docker build -t my-backend ./backend
+        if [ -d "./cloudguru-home-task/Docker/backend" ]; then
+          docker build -t my-backend ./cloudguru-home-task/Docker/backend
           docker tag my-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/backend:latest
         else
           echo "Backend directory not found. Skipping backend image build."
         fi
 
-        if [ -d "./frontend" ]; then
-          docker build -t my-frontend ./frontend
+        if [ -d "./cloudguru-home-task/Docker/frontend" ]; then
+          docker build -t my-frontend ./cloudguru-home-task/Docker/frontend
           docker tag my-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/frontend:latest
         else
           echo "Frontend directory not found. Skipping frontend image build."
         fi
+
+ 
+
+    # 3. Debug - Show contents of terraform folder
+    - name: Debug - Show contents of terraform folder
+      run: ls -la ./cloudguru-home-task/terraform
+
+    # 4. Set up Terraform
+    - name: Terraform Init
+      working-directory: ./cloudguru-home-task/terraform
+      run: terraform init
+
+    # 5. Validate Terraform configuration
+    - name: Terraform Plan
+      working-directory: ./cloudguru-home-task/terraform
+      run: terraform plan
+
+    # 6. Apply Terraform changes
+    - name: Terraform Apply
+      working-directory: ./cloudguru-home-task/terraform
+      run: terraform apply -auto-approve
+
 
     # 8. Deploy to ECS (zero-downtime deployment)
     - name: Deploy to ECS
