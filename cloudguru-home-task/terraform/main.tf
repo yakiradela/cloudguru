@@ -40,4 +40,16 @@ module "iam" {
   source = "./modules/iam"
 }
 
+resource "aws_ecs_service" "app_service" {
+  name            = "my-service"
+  cluster         = aws_ecs_cluster.app_cluster.id
+  task_definition = aws_ecs_task_definition.app_task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets          = [aws_subnet.public_subnet.id]
+    assign_public_ip = true
+  }
+}
+
 
